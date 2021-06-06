@@ -2,9 +2,10 @@ package source;
 
 public class RedheadDuck extends Duck {
 
+	//use constructor for runtime 
 	public RedheadDuck() {
 		flyable = new FlyNoWay();
-		quackable = new MuteQuack();
+		quackable = new Squeak();
 	}
 	
 	@Override
