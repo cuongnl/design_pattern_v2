@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="_1_strategy_pattern/src"/>
+	<classpathentry kind="src" path="_2_observer_pattern/src"/>
+	<classpathentry kind="src" path="abstract_factory_pattern/factory_exemple_1/src"/>
+	<classpathentry kind="src" path="factoty_pattern/before_use_abstract_method/src"/>
+	<classpathentry kind="src" path="factoty_pattern/exemple_bank_2/src"/>
+	<classpathentry kind="src" path="factoty_pattern/exemple_bank/src"/>
+	<classpathentry kind="output" path="abstract_factory_pattern/factory_exemple_1/bin"/>
+</classpath>
