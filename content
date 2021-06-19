@@ -1,0 +1,21 @@
+Sư phụ: Grasshopper, đã một thời gian kể từ cuộc nói chuyện cuối cùng của chúng ta. Con đã từng suy nghĩ thật lâu về thừa kế chưa?
+
+Học trò: Vâng, thưa thầy. Mặc dù tính kế thừa rất mạnh mẽ nhưng con đã học được rằng nó không phải lúc nào cũng dẫn đến các thiết kế linh hoạt nhất hoặc có thể bảo trì.
+
+Sư phụ: À đúng rồi, con đã có một số tiến bộ. Vì vậy, hãy cho thầy biết Học trò của thầy, làm thế nào con sẽ đạt được “tái sử dụng” nếu không thông qua thừa kế?
+
+Học trò: Sư phụ, con đã học được rằng có nhiều cách để kế thừa hành vi trong thời gian chạy thông qua composition (kết hợp hành vi) và delegation (ủy thác hành vi cho các lớp khác).
+
+Học trò: Khi con kế thừa hành vi bằng cách phân lớp, hành vi đó được đặt cố định tại thời gian biên dịch. Ngoài ra, tất cả các lớp con phải kế thừa cùng một hành vi. Tuy nhiên, nếu con có thể mở rộng một hành vi của đối tượng thông qua composition, thì con có thể thực hiện điều này một cách linh hoạt khi chạy.
+
+Sư phụ: Rất tốt, Grasshopper, con đang bắt đầu thấy sức mạnh của composition.
+
+Học trò: Có, con có thể thêm nhiều hành vi mới cho các đối tượng thông qua kỹ thuật này, bao gồm cả những hành vi mà người thiết kế lớp cha thậm chí không nghĩ tới. Và, con không phải đụng chạm vào code của họ!
+
+Sư phụ: Con đã học được gì về tác dụng của composition trong việc bảo trì code của mình?
+
+Học trò: Vâng, đó là những gì con đã nhận được. Bằng cách kết hợp động các đối tượng, con có thể thêm chức năng mới bằng cách viết thêm code thay vì thay đổi code hiện có. Và vì không thay đổi code hiện tại, nên cơ hội xảy ra lỗi hoặc gây ra ảnh hưởng ngoài ý muốn trong code trước đó đã giảm đi nhiều.
+
+Sư phụ: Rất tốt. Đã đủ cho ngày hôm nay, Grasshopper. Thầy muốn con đi và suy ngẫm sâu hơn về chủ đề này … Hãy nhớ rằng, code nên được đóng (để thay đổi) như hoa sen vào buổi tối, nhưng mở (để mở rộng) như hoa sen vào buổi sáng.
+
+
