@@ -1,0 +1,6 @@
+-vitual proxy:
+    + làm việc theo cơ chế lazy loading
+    + Chỉ đến khi cần, proxy class mới thật sự khởi tạo real class
+    + Cấu trúc: Image interface, ProxyImage class, RealImage class.
+                - ProxyImage và RealImage kế thừa từ Interface
+                - RealImage chỉ được khởi tạo cần thiết và chỉ được tạo 1 lần duy nhất

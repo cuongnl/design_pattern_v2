@@ -1,0 +1,7 @@
+-vitual proxy:
+    + làm việc theo cơ chế eger loading
+    + Khởi tạo proxy class mới --> khởi tạo real class
+    + Cấu trúc: Interface, Proxy Class, Real Class.
+                - Proxy và Real Class kế thừa từ Interface
+                - Proxy khởi tạo --> Real class khởi tạo
+                - Phân quyền trong proxy, tức là phân quyền các chức năng trong proxy
