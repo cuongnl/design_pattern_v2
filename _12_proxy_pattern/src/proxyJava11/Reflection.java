@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,21 +23,16 @@
  * questions.
  */
 
-package jdk.internal.reflect;
-
+package sun.;
 
 import java.lang.reflect.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import jdk.internal.HotSpotIntrinsicCandidate;
-import jdk.internal.loader.ClassLoaders;
-import jdk.internal.misc.VM;
 
 /** Common utility routines used by both java.lang and
     java.lang.reflect */
 
-public class Reflection {
+public class Reflection { 
 
     /** Used to filter out fields and methods from certain classes from public
         view, where they are sensitive or they may contain VM-internal objects.
@@ -61,8 +56,15 @@ public class Reflection {
         ignoring frames associated with java.lang.reflect.Method.invoke()
         and its implementation. */
     @CallerSensitive
-    @HotSpotIntrinsicCandidate
     public static native Class<?> getCallerClass();
+
+    /**
+     * @deprecated This method will be removed in JDK 9.
+     * This method is a private JDK API and retained temporarily for
+     * existing code to run until a replacement API is defined.
+     */
+    @Deprecated
+    public static native Class<?> getCallerClass(int depth);
 
     /** Retrieves the access flags written to the class file. For
         inner classes these flags may differ from those returned by
@@ -72,62 +74,55 @@ public class Reflection {
         to compatibility reasons; see 4471811. Only the values of the
         low 13 bits (i.e., a mask of 0x1FFF) are guaranteed to be
         valid. */
-    @HotSpotIntrinsicCandidate
     public static native int getClassAccessFlags(Class<?> c);
 
+    /** A quick "fast-path" check to try to avoid getCallerClass()
+        calls. */
+    public static boolean quickCheckMemberAccess(Class<?> memberClass,
+                                                 int modifiers)
+    {
+        return Modifier.isPublic(getClassAccessFlags(memberClass) & modifiers);
+    }
 
-    /**
-     * Ensures that access to a member is granted and throws
-     * IllegalAccessException if not.
-     *
-     * @param currentClass the class performing the access
-     * @param memberClass the declaring class of the member being accessed
-     * @param targetClass the class of target object if accessing instance
-     *                    field or method;
-     *                    or the declaring class if accessing constructor;
-     *                    or null if accessing static field or method
-     * @param modifiers the member's access modifiers
-     * @throws IllegalAccessException if access to member is denied
-     */
     public static void ensureMemberAccess(Class<?> currentClass,
                                           Class<?> memberClass,
-                                          Class<?> targetClass,
+                                          Object target,
                                           int modifiers)
         throws IllegalAccessException
     {
-        if (!verifyMemberAccess(currentClass, memberClass, targetClass, modifiers)) {
-            throw newIllegalAccessException(currentClass, memberClass, targetClass, modifiers);
+        if (currentClass == null || memberClass == null) {
+            throw new InternalError();
+        }
+
+        if (!verifyMemberAccess(currentClass, memberClass, target, modifiers)) {
+            throw new IllegalAccessException("Class " + currentClass.getName() +
+                                             " can not access a member of class " +
+                                             memberClass.getName() +
+                                             " with modifiers \"" +
+                                             Modifier.toString(modifiers) +
+                                             "\"");
         }
     }
 
-    /**
-     * Verify access to a member and return {@code true} if it is granted.
-     *
-     * @param currentClass the class performing the access
-     * @param memberClass the declaring class of the member being accessed
-     * @param targetClass the class of target object if accessing instance
-     *                    field or method;
-     *                    or the declaring class if accessing constructor;
-     *                    or null if accessing static field or method
-     * @param modifiers the member's access modifiers
-     * @return {@code true} if access to member is granted
-     */
     public static boolean verifyMemberAccess(Class<?> currentClass,
+                                             // Declaring class of field
+                                             // or method
                                              Class<?> memberClass,
-                                             Class<?> targetClass,
-                                             int modifiers)
+                                             // May be NULL in case of statics
+                                             Object   target,
+                                             int      modifiers)
     {
+        // Verify that currentClass can access a field, method, or
+        // constructor of memberClass, where that member's access bits are
+        // "modifiers".
+
+        boolean gotIsSameClassPackage = false;
+        boolean isSameClassPackage = false;
+
         if (currentClass == memberClass) {
             // Always succeeds
             return true;
         }
-
-        if (!verifyModuleAccess(currentClass.getModule(), memberClass)) {
-            return false;
-        }
-
-        boolean gotIsSameClassPackage = false;
-        boolean isSameClassPackage = false;
 
         if (!Modifier.isPublic(getClassAccessFlags(memberClass))) {
             isSameClassPackage = isSameClassPackage(currentClass, memberClass);
@@ -141,15 +136,6 @@ public class Reflection {
 
         if (Modifier.isPublic(modifiers)) {
             return true;
-        }
-
-        // Check for nestmate access if member is private
-        if (Modifier.isPrivate(modifiers)) {
-            // Note: targetClass may be outside the nest, but that is okay
-            //       as long as memberClass is in the nest.
-            if (areNestMates(currentClass, memberClass)) {
-                return true;
-            }
         }
 
         boolean successSoFar = false;
@@ -177,18 +163,18 @@ public class Reflection {
             return false;
         }
 
-        // Additional test for protected instance members
-        // and protected constructors: JLS 6.6.2
-        if (targetClass != null && Modifier.isProtected(modifiers) &&
-            targetClass != currentClass)
-        {
-            if (!gotIsSameClassPackage) {
-                isSameClassPackage = isSameClassPackage(currentClass, memberClass);
-                gotIsSameClassPackage = true;
-            }
-            if (!isSameClassPackage) {
-                if (!isSubclassOf(targetClass, currentClass)) {
-                    return false;
+        if (Modifier.isProtected(modifiers)) {
+            // Additional test for protected members: JLS 6.6.2
+            Class<?> targetClass = (target == null ? memberClass : target.getClass());
+            if (targetClass != currentClass) {
+                if (!gotIsSameClassPackage) {
+                    isSameClassPackage = isSameClassPackage(currentClass, memberClass);
+                    gotIsSameClassPackage = true;
+                }
+                if (!isSameClassPackage) {
+                    if (!isSubclassOf(targetClass, currentClass)) {
+                        return false;
+                    }
                 }
             }
         }
@@ -196,30 +182,59 @@ public class Reflection {
         return true;
     }
 
-    /**
-     * Returns {@code true} if memberClass's module exports memberClass's
-     * package to currentModule.
-     */
-    public static boolean verifyModuleAccess(Module currentModule, Class<?> memberClass) {
-        Module memberModule = memberClass.getModule();
-        if (currentModule == memberModule) {
-            // same module (named or unnamed) or both null if called
-            // before module system is initialized, which means we are
-            // dealing with java.base only.
-            return true;
-        } else {
-            String pkg = memberClass.getPackageName();
-            return memberModule.isExported(pkg, currentModule);
-        }
+    private static boolean isSameClassPackage(Class<?> c1, Class<?> c2) {
+        return isSameClassPackage(c1.getClassLoader(), c1.getName(),
+                                  c2.getClassLoader(), c2.getName());
     }
 
-    /**
-     * Returns true if two classes in the same package.
-     */
-    private static boolean isSameClassPackage(Class<?> c1, Class<?> c2) {
-        if (c1.getClassLoader() != c2.getClassLoader())
+    /** Returns true if two classes are in the same package; classloader
+        and classname information is enough to determine a class's package */
+    private static boolean isSameClassPackage(ClassLoader loader1, String name1,
+                                              ClassLoader loader2, String name2)
+    {
+        if (loader1 != loader2) {
             return false;
-        return Objects.equals(c1.getPackageName(), c2.getPackageName());
+        } else {
+            int lastDot1 = name1.lastIndexOf('.');
+            int lastDot2 = name2.lastIndexOf('.');
+            if ((lastDot1 == -1) || (lastDot2 == -1)) {
+                // One of the two doesn't have a package.  Only return true
+                // if the other one also doesn't have a package.
+                return (lastDot1 == lastDot2);
+            } else {
+                int idx1 = 0;
+                int idx2 = 0;
+
+                // Skip over '['s
+                if (name1.charAt(idx1) == '[') {
+                    do {
+                        idx1++;
+                    } while (name1.charAt(idx1) == '[');
+                    if (name1.charAt(idx1) != 'L') {
+                        // Something is terribly wrong.  Shouldn't be here.
+                        throw new InternalError("Illegal class name " + name1);
+                    }
+                }
+                if (name2.charAt(idx2) == '[') {
+                    do {
+                        idx2++;
+                    } while (name2.charAt(idx2) == '[');
+                    if (name2.charAt(idx2) != 'L') {
+                        // Something is terribly wrong.  Shouldn't be here.
+                        throw new InternalError("Illegal class name " + name2);
+                    }
+                }
+
+                // Check that package part is identical
+                int length1 = lastDot1 - idx1;
+                int length2 = lastDot2 - idx2;
+
+                if (length1 != length2) {
+                    return false;
+                }
+                return name1.regionMatches(false, idx1, name2, idx2, length1);
+            }
+        }
     }
 
     static boolean isSubclassOf(Class<?> queryClass,
@@ -313,59 +328,24 @@ public class Reflection {
 
     /**
      * Tests if the given method is caller-sensitive and the declaring class
-     * is defined by either the bootstrap class loader or platform class loader.
+     * is defined by either the bootstrap class loader or extension class loader.
      */
     public static boolean isCallerSensitive(Method m) {
         final ClassLoader loader = m.getDeclaringClass().getClassLoader();
-        if (VM.isSystemDomainLoader(loader)) {
+        if (sun.misc.VM.isSystemDomainLoader(loader) || isExtClassLoader(loader))  {
             return m.isAnnotationPresent(CallerSensitive.class);
         }
         return false;
     }
 
-    /**
-     * Returns an IllegalAccessException with an exception message based on
-     * the access that is denied.
-     */
-    public static IllegalAccessException newIllegalAccessException(Class<?> currentClass,
-                                                                   Class<?> memberClass,
-                                                                   Class<?> targetClass,
-                                                                   int modifiers)
-        throws IllegalAccessException
-    {
-        String currentSuffix = "";
-        String memberSuffix = "";
-        Module m1 = currentClass.getModule();
-        if (m1.isNamed())
-            currentSuffix = " (in " + m1 + ")";
-        Module m2 = memberClass.getModule();
-        if (m2.isNamed())
-            memberSuffix = " (in " + m2 + ")";
-
-        String memberPackageName = memberClass.getPackageName();
-
-        String msg = currentClass + currentSuffix + " cannot access ";
-        if (m2.isExported(memberPackageName, m1)) {
-
-            // module access okay so include the modifiers in the message
-            msg += "a member of " + memberClass + memberSuffix +
-                    " with modifiers \"" + Modifier.toString(modifiers) + "\"";
-
-        } else {
-            // module access failed
-            msg += memberClass + memberSuffix+ " because "
-                   + m2 + " does not export " + memberPackageName;
-            if (m2.isNamed()) msg += " to " + m1;
+    private static boolean isExtClassLoader(ClassLoader loader) {
+        ClassLoader cl = ClassLoader.getSystemClassLoader();
+        while (cl != null) {
+            if (cl.getParent() == null && cl == loader) {
+                return true;
+            }
+            cl = cl.getParent();
         }
-
-        return new IllegalAccessException(msg);
+        return false;
     }
-
-    /**
-     * Returns true if {@code currentClass} and {@code memberClass}
-     * are nestmates - that is, if they have the same nesthost as
-     * determined by the VM.
-     */
-    public static native boolean areNestMates(Class<?> currentClass,
-                                              Class<?> memberClass);
 }
