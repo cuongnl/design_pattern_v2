@@ -1,0 +1,5 @@
+package _1_problem;
+
+public class ClassA {
+
+}
