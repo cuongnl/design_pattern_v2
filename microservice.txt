@@ -1,0 +1,22 @@
+1) điểm dở của việc phát triển phần mềm microservice: 
+    - Việc phát triển ứng dụng khó hơn
+        + các chức năng chia theo service, gọi giữa các service 
+        + quản lý trasaction rất khó khăn 
+        + xắc thực, phân quyền cũng là vấn đề 
+        + quản lý trùng lặp source giữa các service 
+        + vận hành, build gặp khó khắn
+        + sử lý lỗi khó khắn, đọc log để tìm service lỗi, tìm lỗi ở đâu 
+    -Quản lý nhiều server hơn 
+2) Yếu tố để thiết kế 1 project microservice 
+    - Nghiệp vụ cũ và mong muốn của khách hàng 
+        + biết dõ nghiệp vụ >> tổng hợp và tách nhỏ ra các service phù hợp từ đầu 
+        + moi thứ mơ hồ >> design theo hướng mở rộng dần, bao quát những function đã biết, những function này 
+            phải liên quan đến nhau và để trong 1 service, các function sau đó được làm chia sang service mới 
+            hoặc gộp vào service hiện tại
+        + việc design các service rất quan trọng, nếu để chúng gọi qua nhau quá nhiều sẽ dẫn đến project không
+          ` còn là microservice nữa mà là các service gọi nhau làm tăng tính phức tạp của chương trình
+    - Có phải là sản phẩm phát triển lâu dài hay không
+    - Mức độ scale của hệ thống có lớn không (scale về lượng người dùng hoặc về dữ liệu)
+    - Team có sẵn sàng đối đầu với những khó khăn khi chuyển sang mô hình này không
+3) distributed transaction, aps dung CAP để quản lý transaction
+4) 
