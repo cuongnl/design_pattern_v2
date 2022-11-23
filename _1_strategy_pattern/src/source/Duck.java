@@ -5,11 +5,6 @@ public abstract class Duck {
 	Flyable flyable;
 	Quackable quackable;
 	
-	//add fly, but there are duck not quack --> not good
-//	public void quack() {
-//		System.out.println("quack quack");
-//	}
-	
 	//all duck
 	public void swim() {
 		System.out.println("swimming");
